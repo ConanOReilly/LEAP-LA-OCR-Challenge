@@ -40,48 +40,53 @@ function buildPrompt(input: z.infer<typeof CritiqueRequestSchema>) {
   const failureInfo = safeStringifyFailureInfo(input.failure_info);
   const label = input.label ?? "null";
 
-  const prompt = `
-You are a meticulous Quality Assurance Engineer for the OpenCodeReasoning (OCR) Challenge.
-
-You will be given:
-- PRD: the exact problem statement + constraints
-- BUGGY_CODE: a Python solution that fails
-- FAILURE_INFO: failing tests / trace / error details (may be partial)
-- JUDGEMENT/LABEL: may be present as a hint about expected behavior
-
-Your task is to produce the OCR "Critique Cycle" output in EXACTLY THREE sections with the EXACT headers:
-
-1) Detailed Diagnosis
-2) [Proposed Fix]
-3) <Test_Validation>
-
-Hard requirements:
-- "Detailed Diagnosis" must identify the faulty line(s), root cause, and how it violates PRD constraints.
-- "[Proposed Fix]" must be a complete self-contained Python script (include imports; define required functions; read input if needed).
-- "<Test_Validation>" must contain at least 3 NEW assert statements:
-  - one counter-factual test that would fail on the buggy code but pass on your fix
-  - two additional edge/boundary tests
-- Do NOT use external internet, files, or libraries not in standard Python.
-- Keep it formal, precise, and technical. No filler.
-
-Now, here is the input:
-
-=== PRD ===
-${prd}
-
-=== BUGGY_CODE ===
-\`\`\`python
-${code}
-\`\`\`
-
-=== FAILURE_INFO (json) ===
-${failureInfo}
-
-=== LABEL/JUDGEMENT (optional) ===
-${label}
-
-Return ONLY the three required sections, in order.
-`.trim();
+  const prompt = [
+    "You are a meticulous Quality Assurance Engineer for the OpenCodeReasoning (OCR) Challenge.",
+    "",
+    "You will be given:",
+    "- PRD: the exact problem statement + constraints",
+    "- BUGGY_CODE: a Python solution that fails",
+    "- FAILURE_INFO: failing tests / trace / error details (may be partial)",
+    "- LABEL/JUDGEMENT: may be present as a hint about expected behavior",
+    "",
+    "OUTPUT FORMAT CONTRACT (STRICT):",
+    "- Your output MUST contain exactly THREE sections, in this exact order.",
+    "- The FIRST line of each section MUST be EXACTLY one of these header lines (match characters exactly):",
+    "Detailed Diagnosis",
+    "[Proposed Fix]",
+    "<Test_Validation>",
+    "- Do NOT add any other headers or lines that look like headers.",
+    "- Do NOT add numbering, bullets, colons, markdown prefixes (e.g. ###), or extra characters on the header lines.",
+    "- Do NOT output anything before 'Detailed Diagnosis' and do NOT output anything after the <Test_Validation> section.",
+    "",
+    "CORRECTNESS REQUIREMENTS:",
+    "- Detailed Diagnosis: identify faulty line(s), root cause, and how it violates the PRD.",
+    "- [Proposed Fix]: provide a complete, self-contained Python script that solves the PRD.",
+    "  - Keep the original structure where possible; change only what is necessary to satisfy the PRD.",
+    "  - Do NOT introduce unrelated algorithms or features.",
+    "- <Test_Validation>: include at least 3 NEW assert statements (plain 'assert', no test frameworks).",
+    "  - Include at least 1 counter-factual assert that fails on the buggy code but passes on your fix (use FAILURE_INFO when possible).",
+    "  - Include at least 2 additional edge/boundary asserts implied by the PRD.",
+    "- The asserts MUST be consistent with the behavior of your fixed code.",
+    "- Do NOT use external internet, files, or non-standard libraries.",
+    "- Keep it formal, precise, and technical. No filler.",
+    "",
+    "INPUTS:",
+    "",
+    "=== PRD ===",
+    prd.trim(),
+    "",
+    "=== BUGGY_CODE ===",
+    code.trim(),
+    "",
+    "=== FAILURE_INFO (json) ===",
+    failureInfo,
+    "",
+    "=== LABEL/JUDGEMENT (optional) ===",
+    label,
+    "",
+    "Return ONLY the three required sections, in order, with the exact header lines.",
+  ].join("\n");
 
   return truncate(prompt, MAX_PROMPT_CHARS);
 }
